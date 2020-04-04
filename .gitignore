@@ -34,3 +34,5 @@ cermine-impl/*.xml
 
 #webapp logs
 cermine-web/catalina.base*
+
+.idea
