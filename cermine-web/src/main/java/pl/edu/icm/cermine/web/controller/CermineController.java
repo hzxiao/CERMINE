@@ -174,6 +174,49 @@ public class CermineController {
             throw new RuntimeException(ex);
         }
     }
+    @ResponseBody
+    @RequestMapping(value = "/upload2.do", method = RequestMethod.POST)
+    public Map<String, Object> uploadFileStream2(@RequestParam("files") MultipartFile file, HttpServletRequest request, Model model) {
+        logger.info("Got an upload2 request.");
+        Map<String, Object> result = new HashMap<>();
+        try {
+            byte[] content = file.getBytes();
+            if (content.length == 0) {
+                model.addAttribute("warning", "An empty or no file sent.");
+                result.put("code", 1);
+                result.put("err", "An empty or no file sent");
+                return result;
+            }
+            String filename = file.getOriginalFilename();
+            logger.debug("Original filename is: " + filename);
+            filename = taskManager.getProperFilename(filename);
+            logger.debug("Created filename: " + filename);
+            long taskId = extractorService.initExtractionTask(content, filename);
+            logger.debug("Task manager is: " + taskManager);
+            result.put("code", 0);
+            result.put("data", taskId);
+            return result;
+
+        } catch (Exception ex) {
+            result.put("code", 2);
+            result.put("err", ex.getMessage());
+            return result;
+        }
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/test.do", method = RequestMethod.GET)
+    public Map test() {
+        logger.info("Got an upload request.");
+        try {
+            Map m = new HashMap();
+            m.put("a", 1);
+            return m;
+
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
 
     @RequestMapping(value = "/extract.do", method = RequestMethod.POST)
     public ResponseEntity<String> extractSync(@RequestBody byte[] content,
@@ -273,6 +316,35 @@ public class CermineController {
             model.put("html", task.getResult().getHtml());
         }
         return new ModelAndView("task", model);
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/load.do", method = RequestMethod.GET)
+    public Map<String, Object> loadTask(@RequestParam("taskId") long id) {
+        Map<String, Object> result = new HashMap<>();
+
+        ExtractionTask task;
+        try {
+            task = taskManager.getTask(id);
+        } catch (Exception e) {
+            result.put("code", 1);
+            result.put("err", e.getMessage());
+            return result;
+        }
+
+        HashMap<String, Object> model = new HashMap<>();
+        model.put("task", task);
+        if (task.isFinished()) {
+            model.put("result", task.getResult());
+            String nlmHtml = StringEscapeUtils.escapeHtml(task.getResult().getNlm());
+            model.put("nlm", nlmHtml);
+            model.put("meta", task.getResult().getMeta());
+            model.put("html", task.getResult().getHtml());
+        }
+
+        result.put("code", 0);
+        result.put("data", model);
+        return result;
     }
 
     @RequestMapping(value = "/tasks.html")
